@@ -49,12 +49,9 @@ COPY ./scripts /root/scripts
 
 FROM ubuntu:24.04
 
+ENV HOME=/root
 ENV IB_GATEWAY_VERSION=10.19.2p
-# IB Gateway user constants
-ARG USER_ID="${USER_ID:-1000}"
-ARG USER_GID="${USER_GID:-1000}"
 # IBC env vars
-ENV HOME=/home/ibgateway
 ENV TWS_MAJOR_VRSN=${IB_GATEWAY_VERSION}
 ENV TWS_PATH=${HOME}/Jts
 ENV TWS_INI=jts.ini
@@ -62,31 +59,28 @@ ENV TWS_INI_TMPL=${TWS_INI}.tmpl
 ENV IBC_PATH=${HOME}/ibc
 ENV IBC_INI=${HOME}/ibc/config.ini
 ENV IBC_INI_TMPL=${IBC_INI}.tmpl
-ENV SCRIPT_PATH=${HOME}/scripts
+ENV SCRIPT_PATH=/root/scripts
 ENV GATEWAY_OR_TWS=gateway
 # Copy files
 COPY --from=setup /usr/local/i4j_jres/ /usr/local/i4j_jres
-COPY --chown=${USER_ID}:${USER_GID} --from=setup /root/ ${HOME}
+COPY --from=setup /root/ /root/
 
 # Prepare system
 RUN apt-get update -y && \
   apt-get upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --yes \
-  gettext-base socat xvfb x11vnc sshpass openssh-client && \
+  gettext-base socat xvfb x11vnc sshpass openssh-client telnet lsof bind9-host net-tools && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* && \
   if id ubuntu; then \
     userdel -rf ubuntu \
   ;fi && \
-  groupadd --gid ${USER_GID} ibgateway && \
-  useradd -ms /bin/bash --uid ${USER_ID} --gid ${USER_GID} ibgateway && \
   chmod a+x ${SCRIPT_PATH}/*.sh
 
-USER ${USER_ID}:${USER_GID}
 WORKDIR ${HOME}
 
 # Start run script
-CMD ["/home/ibgateway/scripts/run.sh"]
+CMD ["/root/scripts/run.sh"]
 
 LABEL org.opencontainers.image.source=https://github.com/gnzsnz/ib-gateway-docker
 LABEL org.opencontainers.image.url=https://github.com/gnzsnz/ib-gateway-docker/pkgs/container/ib-gateway
